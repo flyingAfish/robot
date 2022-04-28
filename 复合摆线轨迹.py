@@ -259,8 +259,10 @@ def draw_anim_plt():
 def draw_joint_trend_plot():
     plt.figure(3)
     plt.title(label=u'四足机器人关节角度变化趋势图')
+    plt.subplot(211)
     plt.plot(t, alfa_list, label='大腿角度')
     plt.plot(t, beta_list, label='小腿角度')
+    plt.subplot(212)
     plt.plot(t, x_list, label='足端位移')
     plt.plot(t, y_list, label='足端高度')
     plt.grid(linestyle='--')
@@ -269,7 +271,7 @@ def draw_joint_trend_plot():
     plt.legend()
     plt.xlim(0, 2)
     # plt.ylim(-180, 180)
-    plt.yticks(np.arange(0, 410, 10) - 240)
+    # plt.yticks(np.arange(0, 410, 10) - 240)
     plt.tight_layout()
 
 def show_plot():
@@ -278,8 +280,8 @@ def show_plot():
 if __name__ == '__main__':
     generate_plot_param()
     anima_trajectory_param()
-    # draw_sva_plot()
+    draw_sva_plot()
     draw_anim_plt()
-    # draw_joint_trend_plot()
+    draw_joint_trend_plot()
     show_plot()
 

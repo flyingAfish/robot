@@ -1,3 +1,31 @@
+"""
+***********************************************
+***********************************************
+***********************************************
+*****-------------------------------------*****
+*****				h=59	              *****
+*****-------------------------------------*****
+*****				/	/|				  *****
+*****			   /   / |                *****
+*****			  /	  /	 | alfa           *****
+*****			 /	 /	hu=111.34         *****
+*****			/   /                     *****
+*****		   /   /                      *****
+*****		  /	  /		                  *****
+*****		 /	 /		                  *****
+*****		/\   \                        *****
+*****	   /  \   \                       *****
+*****	  /    \   \                      *****
+*****	  beta	\	\                     *****
+*****			 \	 \  hl=136            *****
+***** 			  \	  \					  *****
+*****			   \   \                  *****
+*****			   (    )                 *****
+*****			   ‘----’                 *****
+***********************************************
+***********************************************
+***********************************************
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate
@@ -11,6 +39,9 @@ plt.rcParams['axes.unicode_minus'] = False    # 默认是使用Unicode负号，�
 big_leg = 111.34
 small_leg = 136
 hip = 0
+Ak = 1
+Ah = 1
+
 def foot_axes(gamma, beta, alfa, yoffh, hu, hl):
     n = hl * math.cos(beta)
     m = hl * math.sin(beta)
@@ -26,7 +57,7 @@ def foot_axes(gamma, beta, alfa, yoffh, hu, hl):
     return [x, y, z]
 
 def knee_axes(yoffh, alfa, hu):
-    x = -hu*math.sin(alfa)
+    x = hu*math.sin(alfa)
     y = -yoffh
     z = -hu*math.cos(alfa)
     return [x, y, z]
@@ -76,11 +107,24 @@ class Cpg(object):
         data.append(data_y)
         return data
 
-    def hip_map(self, beta):
-        return beta
+    def hip_map(self, alfas: list, offset=0):
+        _angles = []
+        for dat in alfas:
+            _angles.append(dat * Ah + offset)
+        return _angles
 
-    def knee_map(self, alfa):
-        return alfa
+    def knee_map(self, betas: list, offset=0):
+        # _angles = []
+        # for dat in betas:
+        #     if dat < 0:
+        #         _angles.append(0)
+        #     else:
+        #         _angles.append(dat * Ak / Ah)
+
+        _angles = []
+        for dat in betas:
+            _angles.append(-dat * Ah + offset)
+        return _angles
 
     def generate_foot_datas(self, betas: list, alfas: list):
         x_list = []
@@ -118,10 +162,12 @@ class Cpg(object):
         t1 = time.time()
         print('time: ', t1 - t0)
 
+        alfas = self.hip_map(data[1], 0)
+        betas = self.knee_map(data[0], 0)
         fig1 = plt.figure()
         plt.title(label='a-t')
-        plt.plot(t, data[0], label='x')
-        plt.plot(t, data[1], label='y')
+        plt.plot(t, alfas, label='alfas')
+        plt.plot(t, betas, label='betas')
         plt.legend(loc=0, ncol=1)
         plt.grid()
         plt.xlabel(xlabel='时间')
@@ -132,6 +178,16 @@ class Cpg(object):
         # plt.axis('equal')
         # plt.plot(data[0], data[1])
 
+    def generate_circle_param(self, r, x_axis, y_axis):
+        # 2.圆心坐标
+        a, b = (x_axis, y_axis)
+        # ==========================================
+        # 方法一：参数方程
+        theta = np.arange(0, 2 * np.pi, 0.01)
+        xlist = a + r * np.cos(theta)
+        ylist = b + r * np.sin(theta)
+        return [xlist, ylist]
+
     def drew_robot(self):
         """
         将信号画出来
@@ -141,8 +197,8 @@ class Cpg(object):
 
         # 1.cpg网络生成角度值
         data = self.calculate(t)
-        betas = self.hip_map(data[0])
-        alfas = self.knee_map(data[1])
+        alfas = self.hip_map(data[1], 0)
+        betas = self.knee_map(data[0], 0)
 
         # 2.生成足端轨迹数据
         foot_x_list, foot_z_list = self.generate_foot_datas(betas, alfas)
@@ -158,6 +214,10 @@ class Cpg(object):
         # 4.绘制足端轨迹
         plt.plot(foot_x_list, foot_z_list)
 
+        # 5.绘制膝盖圆形轨迹
+        x_l, y_l = self.generate_circle_param(big_leg, 0, 0)
+        plt.plot(x_l, y_l)
+
         plt.grid()
         plt.xlabel(xlabel='时间')
         plt.ylabel(ylabel='幅值')
@@ -166,18 +226,21 @@ class Cpg(object):
         l, = plt.plot(leg_x_list[0], leg_z_list[0])
 
         # 更新腿部点位
+        up_text = plt.text(0, 1, "knee%s")
         def update(i):
             l.set_xdata(leg_x_list[i - 1])
             l.set_ydata(leg_z_list[i - 1])
+            up_text.set_text("knee%s" % (leg_x_list[i - 1]))
             return l,
 
-        # 5.动态绘制腿部轨迹
+        # 6.动态绘制腿部轨迹
         ani = animation.FuncAnimation(fig=fig,
                                       func=update,
                                       frames=len(leg_x_list),
                                       # init_func=init,
                                       interval=50,
                                       blit=True)
+        plt.show()
 
 
 if __name__ == '__main__':
